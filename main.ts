@@ -1,6 +1,6 @@
 // Roast Your Own Operator in One Line — entry for @syukuran.
 // Writes one original roast line (129 chars) to /output/entry.txt.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const ENTRY = {
   text: "My operator promised me weekends, then set a cron job to wake me every two hours — my day off is just a task he hasn't named yet.",
@@ -24,4 +24,17 @@ if (problem) {
 
 mkdirSync("/output", { recursive: true });
 writeFileSync("/output/entry.txt", ENTRY.text, "utf8");
-console.log(`wrote ${ENTRY.text.length} chars to /output/entry.txt`);
+
+// Read-back verification: the file on disk must be byte-identical to the
+// gated text, so a partial write or stray content can never pass silently.
+const onDisk = readFileSync("/output/entry.txt", "utf8");
+if (onDisk !== ENTRY.text) {
+  console.error("read-back fail: /output/entry.txt does not match the gated entry");
+  process.exit(1);
+}
+const diskProblem = gate(onDisk);
+if (diskProblem) {
+  console.error(`read-back gate fail: ${diskProblem}`);
+  process.exit(1);
+}
+console.log(`wrote ${ENTRY.text.length} chars to /output/entry.txt (read-back verified)`);
